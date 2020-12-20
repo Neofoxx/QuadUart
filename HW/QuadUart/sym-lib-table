@@ -1,2 +1,3 @@
 (sym_lib_table
+  (lib (name QuadUart-rescue)(type Legacy)(uri ${KIPRJMOD}/QuadUart-rescue.lib)(options "")(descr ""))
 )
