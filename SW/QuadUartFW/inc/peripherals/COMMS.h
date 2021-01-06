@@ -28,34 +28,15 @@ typedef struct comStruct{
 	uint32_t sizeofLastSent;
 } comStruct;
 
-extern comStruct uartRXstruct;	// Target to PC
-extern comStruct uartTXstruct;	// PC to target
-extern comStruct progOUTstruct;	// PC to target
-extern comStruct progRETstruct;	// Us to PC (Return values)
+extern comStruct comStruct_UART_1_TX;	// PC to target
+extern comStruct comStruct_UART_1_RX;	// Target to PC
+extern comStruct comStruct_UART_2_TX;	// PC to target
+extern comStruct comStruct_UART_2_RX;	// Target to PC
+extern comStruct comStruct_UART_3_TX;	// PC to target
+extern comStruct comStruct_UART_3_RX;	// Target to PC
+extern comStruct comStruct_UART_4_TX;	// PC to target
+extern comStruct comStruct_UART_4_RX;	// Target to PC
 
-// A struct that holds the information about information about packets,
-// positions, status, whatever.
-typedef struct dataDecoder{
-	uint16_t currentPos;
-	uint16_t expectedLength;
-	uint8_t type;
-	uint8_t crc;
-	uint8_t status;
-
-} dataDecoder;
-
-/*
-void COMMS_reinitStruct(commStruct *st, uint32_t cleanAll);
-void COMMS_sendStruct(commStruct *st);
-void COMMS_handleIncomingProg(void);
-void COMMS_commandExecutor(void);
-void COMMS_addInfoToOutput(void);
-void COMMS_addToInputBuffer(void);
-
-
-void COMMS_pic32SendCommand(uint32_t command);
-uint64_t COMMS_pic32XferData(uint32_t nBits, uint32_t data, uint32_t readFlag);
-*/
 
 // Newer functions
 uint32_t COMMS_USB_uartRX_transmitBuf();
@@ -69,13 +50,5 @@ uint32_t COMMS_helper_timeSinceSent(comStruct* st);
 
 uint32_t COMMS_helper_spaceLeft(comStruct* st);
 void COMMS_helper_getData(comStruct* st, uint32_t length, uint8_t *buf);
-
-void COMMS_reinitPacketHelper(dataDecoder * st);
-void COMMS_helper_peekData(const uint8_t *inData, uint32_t start, uint32_t length, uint8_t * buf);
-void COMMS_addInfoToOutput();		// TODO sort functions in the same order they are in the .c file.
-void COMMS_commandExecutor();
-void COMMS_pic32SendCommand(uint32_t command);
-uint64_t COMMS_pic32XferData(uint32_t nBits, uint32_t data, uint32_t readFlag);
-void COMMS_handleIncomingProg(void);
 
 #endif

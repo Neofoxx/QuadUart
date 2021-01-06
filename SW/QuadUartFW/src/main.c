@@ -67,17 +67,14 @@ void setup(){
 	val |= 0x00000003;	// Sets to KSEG0/cachable region, as per Table 2-11 in ref. manual
 	_mtc0(_CP0_CONFIG, _CP0_CONFIG_SELECT, val);	// No macro, do it as suggested in first link.
 
-	BMXCONbits.BMXWSDRM = 0;	// Set wait-states to 0
-	
-	// System config, call with desired CPU freq. and PBCLK divisor
-#if defined (__32MX270F256D__)
-	SystemConfig(48000000L, 1);	// Set to 48MHz, with PBCLK with divider 1 (same settings as DEVCFG)
-#elif defined(__32MX440F256H__)
-	SystemConfig(48000000L, 1);	// Set to 80MHz
-#endif
+	BMXCONbits.BMXWSDRM = 0;	// Set wait-states to 0 for Data Memory from SRAM
+
+	CHECONbits.PFMWS = 2;		// Flash requires minimum 2 wait states at 61-80MHz
+
+	CHECONbits.PREFEN = 1;		// Enable prefetch for cacheable PFM instructions
 
 	GPIODrv_init();
-	LED_init();
+
 	UARTDrv_Init(&line_coding);
 
 	// Copied for USB, from hardware.c
@@ -89,11 +86,13 @@ void setup(){
 #endif
 
 	// Enable DMA at the end.
-	DMACONbits.ON = 1;
-	asm("nop");
+	//DMACONbits.ON = 1;
+	//asm("nop");
 
 	// Enable interrupts - at the end, otherwise setting priorities is ineffective ? TODO
 //	INTEnableSystemMultiVectoredInt();
+
+
 
 }
 
