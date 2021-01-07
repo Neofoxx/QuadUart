@@ -30,7 +30,7 @@
    BOTH IN and OUT endpoints for endpoint numbers (besides zero) up to the
    value specified.  For example, setting NUM_ENDPOINT_NUMBERS to 2 will
    activate endpoints EP 1 IN, EP 1 OUT, EP 2 IN, EP 2 OUT.  */
-#define NUM_ENDPOINT_NUMBERS 4
+#define NUM_ENDPOINT_NUMBERS 8
 
 /* Only 8, 16, 32 and 64 are supported for endpoint zero length. */
 #define EP_0_LEN 8
@@ -44,8 +44,8 @@
 #define EP_2_OUT_LEN EP_2_LEN
 #define EP_2_IN_LEN EP_2_LEN
 
-#define EP_PROG_NUM 2	// Helper for some functions & readability
-#define EP_PROG_NUM_LEN EP_2_LEN
+#define EP_UART_1 2	// Helper for some functions & readability
+#define EP_UART_1_LEN EP_2_LEN
 
 // SECOND CDC interface
 #define EP_3_OUT_LEN 1
@@ -56,8 +56,33 @@
 #define EP_4_OUT_LEN EP_4_LEN
 #define EP_4_IN_LEN EP_4_LEN
 
-#define EP_UART_NUM 4	// Helper for some functions & readability
-#define EP_UART_NUM_LEN EP_4_LEN
+#define EP_UART_2 4	// Helper for some functions & readability
+#define EP_UART_2_LEN EP_4_LEN
+
+// THIRD CDC interface
+#define EP_5_OUT_LEN 1
+#define EP_5_IN_LEN 10 /* May need to be longer, depending
+                        * on the notifications you support. */
+
+#define EP_6_LEN 64		// Assume IN and OUT are the same length
+#define EP_6_OUT_LEN EP_6_LEN
+#define EP_6_IN_LEN EP_6_LEN
+
+#define EP_UART_3 6	// Helper for some functions & readability
+#define EP_UART_3_LEN EP_6_LEN
+
+// FROUTH CDC interface
+#define EP_7_OUT_LEN 1
+#define EP_7_IN_LEN 10 /* May need to be longer, depending
+                        * on the notifications you support. */
+
+#define EP_8_LEN 64		// Assume IN and OUT are the same length
+#define EP_8_OUT_LEN EP_8_LEN
+#define EP_8_IN_LEN EP_8_LEN
+
+#define EP_UART_4 8	// Helper for some functions & readability
+#define EP_UART_4_LEN EP_8_LEN
+
 
 #define NUMBER_OF_CONFIGURATIONS 1
 

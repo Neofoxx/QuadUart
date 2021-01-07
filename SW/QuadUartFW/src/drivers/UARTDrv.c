@@ -3,13 +3,13 @@
 #include <GPIODrv.h>
 #include <inttypes.h>
 #include <interrupt.h>
-#include <LED.h>
 #include <COMMS.h>
 #include <kmem.h>
 #include <usb.h>		// If usb.h isn't present, usb_cdc.h goes ballistic with errors.
 #include <usb_cdc.h>
 
 #define PBCLK	40000000
+#define UART_FIFO_SIZE	8
 
 // External UART1 - PIC UART3
 // External UART2 - PIC UART6
@@ -31,79 +31,145 @@ _Static_assert(0, "Please add the proper define for DMA");
 
 // External UART1 - PIC UART3
 INTERRUPT(I2C4_SPI2_UART3_SharedInterrupt){
+	uint8_t buffer[8];
+	uint32_t counter;
+	uint32_t txCounter;
 	// We prioritize the RX interrupt
 	if (UART_1_INT_IFS_bits.UART_1_INT_IFS_RXIF){
+		// Readout data
+		counter = 0;
+		while(UART_1_STA_bits.URXDA){
+			buffer[counter++] = UART_1_RX_reg;
+		}
+		// Save to buffer
+		COMMS_helper_addToBuf(&comStruct_UART_1_RX, buffer, counter);
+		// Clear interrupt flag
 		UART_1_INT_IFS_bits.UART_1_INT_IFS_RXIF = 0;
 	}
 
 	// Then the TX one
 	if (UART_1_INT_IFS_bits.UART_1_INT_IFS_TXIF){
+		// Get as much data as we can (max 8)
+		counter = COMMS_helper_dataLen(&comStruct_UART_1_TX);
+		counter = (counter > UART_FIFO_SIZE) ? UART_FIFO_SIZE : counter;
+		// If there is any data, send out
+		if (counter){
+			COMMS_helper_getData(&comStruct_UART_1_TX, buffer, counter);
+			for (txCounter = 0; txCounter < counter; txCounter++){
+				UART_1_TX_reg = buffer[txCounter];
+			}
+		}
+		// Clear interrupt flag
 		UART_1_INT_IFS_bits.UART_1_INT_IFS_TXIF = 0;
 	}
 }
 
 // External UART2 - PIC UART6
 INTERRUPT(UART6_UART2B_SharedInterrupt){
+	uint8_t buffer[8];
+	uint32_t counter;
+	uint32_t txCounter;
 	// We prioritize the RX interrupt
 	if (UART_2_INT_IFS_bits.UART_2_INT_IFS_RXIF){
+		// Readout data
+		counter = 0;
+		while(UART_2_STA_bits.URXDA){
+			buffer[counter++] = UART_2_RX_reg;
+		}
+		// Save to buffer
+		COMMS_helper_addToBuf(&comStruct_UART_2_RX, buffer, counter);
+		// Clear interrupt flag
 		UART_2_INT_IFS_bits.UART_2_INT_IFS_RXIF = 0;
 	}
 
 	// Then the TX one
 	if (UART_2_INT_IFS_bits.UART_2_INT_IFS_TXIF){
+		// Get as much data as we can (max 8)
+		counter = COMMS_helper_dataLen(&comStruct_UART_2_TX);
+		counter = (counter > UART_FIFO_SIZE) ? UART_FIFO_SIZE : counter;
+		// If there is any data, send out
+		if (counter){
+			COMMS_helper_getData(&comStruct_UART_2_TX, buffer, counter);
+			for (txCounter = 0; txCounter < counter; txCounter++){
+				UART_2_TX_reg = buffer[txCounter];
+			}
+		}
+		// Clear interrupt flag
 		UART_2_INT_IFS_bits.UART_2_INT_IFS_TXIF = 0;
 	}
 }
 
 // External UART3 - PIC UART2
 INTERRUPT(I2C5_SPI4_UART2_SharedInterrupt){
+	uint8_t buffer[8];
+	uint32_t counter;
+	uint32_t txCounter;
 	// We prioritize the RX interrupt
 	if (UART_3_INT_IFS_bits.UART_3_INT_IFS_RXIF){
+		// Readout data
+		counter = 0;
+		while(UART_3_STA_bits.URXDA){
+			buffer[counter++] = UART_3_RX_reg;
+		}
+		// Save to buffer
+		COMMS_helper_addToBuf(&comStruct_UART_3_RX, buffer, counter);
+		// Clear interrupt flag
 		UART_3_INT_IFS_bits.UART_3_INT_IFS_RXIF = 0;
 	}
 
 	// Then the TX one
 	if (UART_3_INT_IFS_bits.UART_3_INT_IFS_TXIF){
+		// Get as much data as we can (max 8)
+		counter = COMMS_helper_dataLen(&comStruct_UART_3_TX);
+		counter = (counter > UART_FIFO_SIZE) ? UART_FIFO_SIZE : counter;
+		// If there is any data, send out
+		if (counter){
+			COMMS_helper_getData(&comStruct_UART_3_TX, buffer, counter);
+			for (txCounter = 0; txCounter < counter; txCounter++){
+				UART_3_TX_reg = buffer[txCounter];
+			}
+		}
+		// Clear interrupt flag
 		UART_3_INT_IFS_bits.UART_3_INT_IFS_TXIF = 0;
 	}
 }
 
 // External UART4 - PIC UART5
 INTERRUPT(UART5_UART3B_SharedInterrupt){
+	uint8_t buffer[8];
+	uint32_t counter;
+	uint32_t txCounter;
 	// We prioritize the RX interrupt
 	if (UART_4_INT_IFS_bits.UART_4_INT_IFS_RXIF){
+		// Readout data
+		counter = 0;
+		while(UART_4_STA_bits.URXDA){
+			buffer[counter++] = UART_4_RX_reg;
+		}
+		// Save to buffer
+		COMMS_helper_addToBuf(&comStruct_UART_4_RX, buffer, counter);
+		// Clear interrupt flag
 		UART_4_INT_IFS_bits.UART_4_INT_IFS_RXIF = 0;
 	}
 
 	// Then the TX one
 	if (UART_4_INT_IFS_bits.UART_4_INT_IFS_TXIF){
+		// Get as much data as we can (max 8)
+		counter = COMMS_helper_dataLen(&comStruct_UART_4_TX);
+		counter = (counter > UART_FIFO_SIZE) ? UART_FIFO_SIZE : counter;
+		// If there is any data, send out
+		if (counter){
+			COMMS_helper_getData(&comStruct_UART_4_TX, buffer, counter);
+			for (txCounter = 0; txCounter < counter; txCounter++){
+				UART_4_TX_reg = buffer[txCounter];
+			}
+		}
+		// Clear interrupt flag
 		UART_4_INT_IFS_bits.UART_4_INT_IFS_TXIF = 0;
 	}
 }
 
 
-
-
-
-	// Get data and save to buffer
-//	uint8_t temp = UART_RX_reg;
-//	COMMS_helper_addToBuf(&uartRXstruct, &temp, 1);
-//
-//	// Clear RX interrupt
-//	UART_INT_IFS_bits.UART_INT_IFS_RXIF = 0;
-//}
-
-// DMA 0 for TX-ing, DMA1 for RXint (when added)
-INTERRUPT(DMA0Interrupt){
-//
-//	// Currently, when finished, just update the buffer position
-//	// and clear interrupt flag
-//	uartTXstruct.tail = (uartTXstruct.tail + sizeToSendTx) & cyclicBufferSizeMask;
-//
-//	DCH0INTCLR = _DCH0INT_CHBCIF_MASK;	// Clear the DMA channel interrupt flag (Block Transfer Done)
-//	IFS1bits.DMA0IF = 0;				// Clear the DMA0 interrup flag ><
-
-}
 
 
 
@@ -115,16 +181,16 @@ void UARTDrv_1_Init(struct cdc_line_coding* coding){
 
 	UART_1_RX_TRISbits.UART_1_TX_TRISPIN = 1;						// 1 == input
 
-	UART_1_MODE_bits.SIDL = 0;	// Stop when in IDLE mode
+	UART_1_MODE_bits.SIDL = 0;		// Stop when in IDLE mode
 	UART_1_MODE_bits.IREN	= 0;	// Disable IrDA
-	UART_1_MODE_bits.RTSMD = 0;	// Don't care, RTS not used
+	UART_1_MODE_bits.RTSMD = 0;		// Don't care, RTS not used
 	UART_1_MODE_bits.UEN = 0;		// TX & RX controlled by UART peripheral, RTC & CTS are not.
-	UART_1_MODE_bits.WAKE = 0;	// Don't wake up from sleep
+	UART_1_MODE_bits.WAKE = 0;		// Don't wake up from sleep
 	UART_1_MODE_bits.LPBACK = 0;	// Loopback mode disabled
-	UART_1_MODE_bits.ABAUD = 0;	// No autobauding
-	UART_1_MODE_bits.RXINV = 0;	// Idle HIGH
-	UART_1_MODE_bits.BRGH = 0;	// Standard speed mode - 16x baud clock
-	UART_1_MODE_bits.PDSEL = 0;	// 8 bits, no parity
+	UART_1_MODE_bits.ABAUD = 0;		// No autobauding
+	UART_1_MODE_bits.RXINV = 0;		// Idle HIGH
+	UART_1_MODE_bits.BRGH = 0;		// Standard speed mode - 16x baud clock
+	UART_1_MODE_bits.PDSEL = 0;		// 8 bits, no parity
 	if (coding->bCharFormat == CDC_CHAR_FORMAT_2_STOP_BITS){
 		UART_1_MODE_bits.STSEL = 1;	// 2 stop bits
 	}
@@ -132,15 +198,15 @@ void UARTDrv_1_Init(struct cdc_line_coding* coding){
 		UART_1_MODE_bits.STSEL = 0;	// 1 stop bit
 	}
 
-	UART_1_STA_bits.ADM_EN = 0;	// Don't care for auto address detection, unused
+	UART_1_STA_bits.ADM_EN = 0;		// Don't care for auto address detection, unused
 	UART_1_STA_bits.ADDR = 0;		// Don't care for auto address mark
 	UART_1_STA_bits.UTXISEL = 0b10;	//TODO
-	UART_1_STA_bits.UTXINV = 0;	// Idle HIGH
-	UART_1_STA_bits.URXEN = 1;	// UART receiver pin enabled
-	UART_1_STA_bits.UTXBRK = 0;	// Don't send breaks.
-	UART_1_STA_bits.UTXEN = 1;	// Uart transmitter pin enabled
+	UART_1_STA_bits.UTXINV = 0;		// Idle HIGH
+	UART_1_STA_bits.URXEN = 1;		// UART receiver pin enabled
+	UART_1_STA_bits.UTXBRK = 0;		// Don't send breaks.
+	UART_1_STA_bits.UTXEN = 1;		// Uart transmitter pin enabled
 	UART_1_STA_bits.URXISEL = 0;	// Interrupt what receiver buffer not empty
-	UART_1_STA_bits.ADDEN = 0;	// Address detect mode disabled (unused)
+	UART_1_STA_bits.ADDEN = 0;		// Address detect mode disabled (unused)
 	UART_1_STA_bits.OERR = 0;		// Clear RX Overrun bit - not important at this point
 
 	// (PBCLK/BRGH?4:16)/BAUD - 1
@@ -157,7 +223,7 @@ void UARTDrv_1_Init(struct cdc_line_coding* coding){
 	UART_1_MODE_bits.ON = 1;
 }
 
-}
+
 void UARTDrv_2_Init(struct cdc_line_coding* coding){	UART_1_MODE_bits.ON = 0;
 
 	UART_2_MODE_bits.ON = 0;
@@ -365,6 +431,18 @@ void UARTDrv_4_Init(struct cdc_line_coding* coding){
 
 
 
+
+// DMA 0 for TX-ing, DMA1 for RXint (when added)
+//INTERRUPT(DMA0Interrupt){
+//
+//	// Currently, when finished, just update the buffer position
+//	// and clear interrupt flag
+//	uartTXstruct.tail = (uartTXstruct.tail + sizeToSendTx) & cyclicBufferSizeMask;
+//
+//	DCH0INTCLR = _DCH0INT_CHBCIF_MASK;	// Clear the DMA channel interrupt flag (Block Transfer Done)
+//	IFS1bits.DMA0IF = 0;				// Clear the DMA0 interrup flag ><
+
+//}
 
 
 //void UARTDrv_InitDMA(){

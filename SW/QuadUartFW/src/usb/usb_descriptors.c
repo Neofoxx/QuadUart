@@ -54,7 +54,7 @@
 struct configuration_1_packet {
 	struct configuration_descriptor  config;
 
-	// FIRST CDC interface - programmer
+	// FIRST CDC interface - UART1
 	struct interface_association_descriptor iad_first;
 
 	/* CDC Class Interface */
@@ -71,7 +71,7 @@ struct configuration_1_packet {
 
 
 
-	// SECOND CDC interface - USB-UART converter
+	// SECOND CDC interface - UART2
 	struct interface_association_descriptor iad_second;
 
 	/* CDC Class Interface */
@@ -85,6 +85,41 @@ struct configuration_1_packet {
 	struct interface_descriptor      cdc_data_interface_second;
 	struct endpoint_descriptor       data_ep_in_second;
 	struct endpoint_descriptor       data_ep_out_second;
+
+
+
+	// THIRD CDC interface - UART3
+	struct interface_association_descriptor iad_third;
+
+	/* CDC Class Interface */
+	struct interface_descriptor      cdc_class_interface_third;
+	struct cdc_functional_descriptor_header cdc_func_header_third;
+	struct cdc_acm_functional_descriptor cdc_acm_third;
+	struct cdc_union_functional_descriptor cdc_union_third;
+	struct endpoint_descriptor       cdc_ep_third;
+
+	/* CDC Data Interface */
+	struct interface_descriptor      cdc_data_interface_third;
+	struct endpoint_descriptor       data_ep_in_third;
+	struct endpoint_descriptor       data_ep_out_third;
+
+
+
+	// FOURTH CDC interface - UART4
+	struct interface_association_descriptor iad_fourth;
+
+	/* CDC Class Interface */
+	struct interface_descriptor      cdc_class_interface_fourth;
+	struct cdc_functional_descriptor_header cdc_func_header_fourth;
+	struct cdc_acm_functional_descriptor cdc_acm_fourth;
+	struct cdc_union_functional_descriptor cdc_union_fourth;
+	struct endpoint_descriptor       cdc_ep_fourth;
+
+	/* CDC Data Interface */
+	struct interface_descriptor      cdc_data_interface_fourth;
+	struct endpoint_descriptor       data_ep_in_fourth;
+	struct endpoint_descriptor       data_ep_out_fourth;
+
 
 
 
@@ -112,7 +147,7 @@ const ROMPTR struct device_descriptor this_device_descriptor =
 	0x01, 									// Protocol. Unsure what to set
 	EP_0_LEN, 								// bMaxPacketSize0 - Could be bigger? Check.
 	0x1209, 								// VID - Vendor ID, from pid.codes
-	0x4E52, 								// PID - Product - "NR" - not set in stone, need to submit to pid.codes for approval.
+	0x5155, 								// PID - Product - "QU" - not set in stone, need to submit to pid.codes for approval.
 	0x0001, // device release (1.0)
 	1, 										// Index of Manufacturer String Descriptor
 	2, 										// Index of Product String Descriptor
@@ -132,216 +167,419 @@ const ROMPTR struct device_descriptor this_device_descriptor =
 static const ROMPTR struct configuration_1_packet configuration_1 =
 {
 	{
-	// Members from struct configuration_descriptor
-	sizeof(struct configuration_descriptor),
-	DESC_CONFIGURATION,
-	sizeof(configuration_1), // wTotalLength (length of the whole packet)
-	4, // bNumInterfaces	- changed
-	1, // bConfigurationValue
-	2, // iConfiguration (index of string descriptor)
-	0b10000000,
-	100/2,   // 100/2 indicates 100mA
+		// Members from struct configuration_descriptor
+		sizeof(struct configuration_descriptor),
+		DESC_CONFIGURATION,
+		sizeof(configuration_1), // wTotalLength (length of the whole packet)
+		8, // bNumInterfaces	- changed AGAIN.
+		1, // bConfigurationValue
+		2, // iConfiguration (index of string descriptor)
+		0b10000000,
+		100/2,   // 100/2 indicates 100mA TODO increase
 	},
 
 	////////////////////////////////////////////////////////////////////
-	// FIRST CDC INTERFACE - programmer
+	// FIRST CDC INTERFACE - UART 1
 	////////////////////////////////////////////////////////////////////
 	/* Interface Association Descriptor */
 	{
-	sizeof(struct interface_association_descriptor),
-	DESC_INTERFACE_ASSOCIATION,
-	0, /* bFirstInterface */
-	2, /* bInterfaceCount */
-	CDC_COMMUNICATION_INTERFACE_CLASS,
-	CDC_COMMUNICATION_INTERFACE_CLASS_ACM_SUBCLASS,
-	0, /* bFunctionProtocol */
-	2, /* iFunction (string descriptor index) */
+		sizeof(struct interface_association_descriptor),
+		DESC_INTERFACE_ASSOCIATION,
+		0, /* bFirstInterface */
+		2, /* bInterfaceCount */
+		CDC_COMMUNICATION_INTERFACE_CLASS,
+		CDC_COMMUNICATION_INTERFACE_CLASS_ACM_SUBCLASS,
+		0, /* bFunctionProtocol */
+		2, /* iFunction (string descriptor index) */
 	},
 
 	/* CDC Class Interface */
 	{
-	// Members from struct interface_descriptor
-	sizeof(struct interface_descriptor), // bLength;
-	DESC_INTERFACE,
-	0x0, // InterfaceNumber
-	0x0, // AlternateSetting
-	0x1, // bNumEndpoints
-	CDC_COMMUNICATION_INTERFACE_CLASS, // bInterfaceClass
-	CDC_COMMUNICATION_INTERFACE_CLASS_ACM_SUBCLASS, // bInterfaceSubclass
-	0x00, // bInterfaceProtocol
-	0x03, // iInterface (index of string describing interface)
+		// Members from struct interface_descriptor
+		sizeof(struct interface_descriptor), // bLength;
+		DESC_INTERFACE,
+		0x0, // InterfaceNumber
+		0x0, // AlternateSetting
+		0x1, // bNumEndpoints
+		CDC_COMMUNICATION_INTERFACE_CLASS, // bInterfaceClass
+		CDC_COMMUNICATION_INTERFACE_CLASS_ACM_SUBCLASS, // bInterfaceSubclass
+		0x00, // bInterfaceProtocol
+		0x03, // iInterface (index of string describing interface)
 	},
 
 	/* CDC Functional Descriptor Header */
 	{
-	sizeof(struct cdc_functional_descriptor_header),
-	DESC_CS_INTERFACE,
-	CDC_FUNCTIONAL_DESCRIPTOR_SUBTYPE_HEADER,
-	0x0110, /* bcdCDC (version in BCD) */
+		sizeof(struct cdc_functional_descriptor_header),
+		DESC_CS_INTERFACE,
+		CDC_FUNCTIONAL_DESCRIPTOR_SUBTYPE_HEADER,
+		0x0110, /* bcdCDC (version in BCD) */
 	},
 
 	/* CDC ACM Functional Descriptor */
 	{
-	sizeof(struct cdc_acm_functional_descriptor),
-	DESC_CS_INTERFACE,
-	CDC_FUNCTIONAL_DESCRIPTOR_SUBTYPE_ACM,
-	/* bmCapabilities: Make sure to keep in sync with the actual
-	 * capabilities (ie: which callbacks are defined). */
-	CDC_ACM_CAPABILITY_LINE_CODINGS | CDC_ACM_CAPABILITY_SEND_BREAK,
+		sizeof(struct cdc_acm_functional_descriptor),
+		DESC_CS_INTERFACE,
+		CDC_FUNCTIONAL_DESCRIPTOR_SUBTYPE_ACM,
+		/* bmCapabilities: Make sure to keep in sync with the actual
+		 * capabilities (ie: which callbacks are defined). */
+		CDC_ACM_CAPABILITY_LINE_CODINGS | CDC_ACM_CAPABILITY_SEND_BREAK,
 	},
 
 	/* CDC Union Functional Descriptor */
 	{
-	sizeof (struct cdc_union_functional_descriptor),
-	DESC_CS_INTERFACE,
-	CDC_FUNCTIONAL_DESCRIPTOR_SUBTYPE_UNION,
-	0, /* bMasterInterface */
-	1, /* bSlaveInterface0 */
+		sizeof (struct cdc_union_functional_descriptor),
+		DESC_CS_INTERFACE,
+		CDC_FUNCTIONAL_DESCRIPTOR_SUBTYPE_UNION,
+		0, /* bMasterInterface */
+		1, /* bSlaveInterface0 */
 	},
 
 	/* CDC ACM Notification Endpoint (Endpoint 1 IN) */
 	{
-	sizeof(struct endpoint_descriptor),
-	DESC_ENDPOINT,
-	0x01 | 0x80, // endpoint #1 0x80=IN
-	EP_INTERRUPT, // bmAttributes
-	EP_1_IN_LEN, // wMaxPacketSize
-	1, // bInterval in ms.
+		sizeof(struct endpoint_descriptor),
+		DESC_ENDPOINT,
+		0x01 | 0x80, // endpoint #1 0x80=IN
+		EP_INTERRUPT, // bmAttributes
+		EP_1_IN_LEN, // wMaxPacketSize
+		1, // bInterval in ms.
 	},
 
 	/* CDC Data Interface */
 	{
-	// Members from struct interface_descriptor
-	sizeof(struct interface_descriptor), // bLength;
-	DESC_INTERFACE,
-	0x1, // InterfaceNumber
-	0x0, // AlternateSetting
-	0x2, // bNumEndpoints
-	CDC_DATA_INTERFACE_CLASS, // bInterfaceClass
-	0, // bInterfaceSubclass (no subclass)
-	CDC_DATA_INTERFACE_CLASS_PROTOCOL_NONE, // bInterfaceProtocol
-	0x04, // iInterface (index of string describing interface)
+		// Members from struct interface_descriptor
+		sizeof(struct interface_descriptor), // bLength;
+		DESC_INTERFACE,
+		0x1, // InterfaceNumber
+		0x0, // AlternateSetting
+		0x2, // bNumEndpoints
+		CDC_DATA_INTERFACE_CLASS, // bInterfaceClass
+		0, // bInterfaceSubclass (no subclass)
+		CDC_DATA_INTERFACE_CLASS_PROTOCOL_NONE, // bInterfaceProtocol
+		0x04, // iInterface (index of string describing interface)
 	},
 
 	/* CDC Data IN Endpoint */
 	{
-	sizeof(struct endpoint_descriptor),
-	DESC_ENDPOINT,
-	0x02 | 0x80, // endpoint #2 0x80=IN
-	EP_BULK, // bmAttributes
-	EP_2_IN_LEN, // wMaxPacketSize
-	1, // bInterval in ms.
+		sizeof(struct endpoint_descriptor),
+		DESC_ENDPOINT,
+		0x02 | 0x80, // endpoint #2 0x80=IN
+		EP_BULK, // bmAttributes
+		EP_2_IN_LEN, // wMaxPacketSize
+		1, // bInterval in ms.
+	},
+
+	/* CDC Data OUT Endpoint */
+	{
+		sizeof(struct endpoint_descriptor),
+		DESC_ENDPOINT,
+		0x02 /*| 0x00*/, // endpoint #2 0x00=OUT
+		EP_BULK, // bmAttributes
+		EP_2_OUT_LEN, // wMaxPacketSize
+		1, // bInterval in ms.
+	},
+
+
+	////////////////////////////////////////////////////////////////////
+	// SECOND CDC INTERFACE - UART2
+	////////////////////////////////////////////////////////////////////
+	/* Interface Association Descriptor */
+	{
+		sizeof(struct interface_association_descriptor),
+		DESC_INTERFACE_ASSOCIATION,
+		2, /* bFirstInterface */	// Set to interface 2, since First IAD is interface 0 and goes for 2 interfaces
+		2, /* bInterfaceCount */
+		CDC_COMMUNICATION_INTERFACE_CLASS,
+		CDC_COMMUNICATION_INTERFACE_CLASS_ACM_SUBCLASS,
+		0, /* bFunctionProtocol */
+		2, /* iFunction (string descriptor index) */	// TODO CHECK
+	},
+
+	/* CDC Class Interface */
+	{
+		// Members from struct interface_descriptor
+		sizeof(struct interface_descriptor), // bLength;
+		DESC_INTERFACE,
+		0x2, // InterfaceNumber		// Set to interface 2
+		0x0, // AlternateSetting
+		0x1, // bNumEndpoints		// 1 endpoint - The INTERRUPT endpoint that has to be for every CDC device.
+		CDC_COMMUNICATION_INTERFACE_CLASS, // bInterfaceClass
+		CDC_COMMUNICATION_INTERFACE_CLASS_ACM_SUBCLASS, // bInterfaceSubclass
+		0x00, // bInterfaceProtocol
+		0x06, // iInterface (index of string describing interface) - changed from 3 to 6
+	},
+
+	/* CDC Functional Descriptor Header */
+	{
+		sizeof(struct cdc_functional_descriptor_header),
+		DESC_CS_INTERFACE,
+		CDC_FUNCTIONAL_DESCRIPTOR_SUBTYPE_HEADER,
+		0x0110, /* bcdCDC (version in BCD) */
+	},
+
+	/* CDC ACM Functional Descriptor */
+	{
+		sizeof(struct cdc_acm_functional_descriptor),
+		DESC_CS_INTERFACE,
+		CDC_FUNCTIONAL_DESCRIPTOR_SUBTYPE_ACM,
+		/* bmCapabilities: Make sure to keep in sync with the actual
+		 * capabilities (ie: which callbacks are defined). */
+		CDC_ACM_CAPABILITY_LINE_CODINGS | CDC_ACM_CAPABILITY_SEND_BREAK,
+	},
+
+	/* CDC Union Functional Descriptor */
+	{
+		sizeof (struct cdc_union_functional_descriptor),
+		DESC_CS_INTERFACE,
+		CDC_FUNCTIONAL_DESCRIPTOR_SUBTYPE_UNION,
+		2, /* bMasterInterface */ // CHANGED
+		3, /* bSlaveInterface0 */ // CHANGED
+	},
+
+	/* CDC ACM Notification Endpoint (Endpoint 1 IN) */
+	{
+		sizeof(struct endpoint_descriptor),
+		DESC_ENDPOINT,
+		0x03 | 0x80, // endpoint #3 0x80=IN - updated
+		EP_INTERRUPT, // bmAttributes
+		EP_3_IN_LEN, // wMaxPacketSize
+		1, // bInterval in ms.
+	},
+
+	/* CDC Data Interface */
+	{
+		// Members from struct interface_descriptor
+		sizeof(struct interface_descriptor), // bLength;
+		DESC_INTERFACE,
+		0x3, // InterfaceNumber
+		0x0, // AlternateSetting
+		0x2, // bNumEndpoints
+		CDC_DATA_INTERFACE_CLASS, // bInterfaceClass
+		0, // bInterfaceSubclass (no subclass)
+		CDC_DATA_INTERFACE_CLASS_PROTOCOL_NONE, // bInterfaceProtocol
+		0x07, // iInterface (index of string describing interface) - changed from 4 to 7
+	},
+
+	/* CDC Data IN Endpoint */
+	{
+		sizeof(struct endpoint_descriptor),
+		DESC_ENDPOINT,
+		0x04 | 0x80, // endpoint #4 0x80=IN - updated
+		EP_BULK, // bmAttributes
+		EP_4_IN_LEN, // wMaxPacketSize
+		1, // bInterval in ms.
 	},
 
 	/* CDC Data OUT Endpoint */
 	{
 	sizeof(struct endpoint_descriptor),
-	DESC_ENDPOINT,
-	0x02 /*| 0x00*/, // endpoint #2 0x00=OUT
-	EP_BULK, // bmAttributes
-	EP_2_OUT_LEN, // wMaxPacketSize
-	1, // bInterval in ms.
+		DESC_ENDPOINT,
+		0x04 /*| 0x00*/, // endpoint #4 0x00=OUT - updated
+		EP_BULK, // bmAttributes
+		EP_4_OUT_LEN, // wMaxPacketSize
+		1, // bInterval in ms.
 	},
 
 
+
 	////////////////////////////////////////////////////////////////////
-	// FIRST CDC INTERFACE - programmer
+	// THIRD CDC INTERFACE - UART3
 	////////////////////////////////////////////////////////////////////
 	/* Interface Association Descriptor */
 	{
-	sizeof(struct interface_association_descriptor),
-	DESC_INTERFACE_ASSOCIATION,
-	2, /* bFirstInterface */	// Set to interface 2, since First IAD is interface 0 and goes for 2 interfaces
-	2, /* bInterfaceCount */
-	CDC_COMMUNICATION_INTERFACE_CLASS,
-	CDC_COMMUNICATION_INTERFACE_CLASS_ACM_SUBCLASS,
-	0, /* bFunctionProtocol */
-	2, /* iFunction (string descriptor index) */	// TODO CHECK
+		sizeof(struct interface_association_descriptor),
+		DESC_INTERFACE_ASSOCIATION,
+		4, /* bFirstInterface */	// Set to interface 4, since Second IAD is interface 2 and goes for 2 interfaces
+		2, /* bInterfaceCount */
+		CDC_COMMUNICATION_INTERFACE_CLASS,
+		CDC_COMMUNICATION_INTERFACE_CLASS_ACM_SUBCLASS,
+		0, /* bFunctionProtocol */
+		2, /* iFunction (string descriptor index) */	// TODO CHECK
 	},
 
 	/* CDC Class Interface */
 	{
-	// Members from struct interface_descriptor
-	sizeof(struct interface_descriptor), // bLength;
-	DESC_INTERFACE,
-	0x2, // InterfaceNumber		// Set to interface 2
-	0x0, // AlternateSetting
-	0x1, // bNumEndpoints		// 1 endpoint - The INTERRUPT endpoint that has to be for every CDC device.
-	CDC_COMMUNICATION_INTERFACE_CLASS, // bInterfaceClass
-	CDC_COMMUNICATION_INTERFACE_CLASS_ACM_SUBCLASS, // bInterfaceSubclass
-	0x00, // bInterfaceProtocol
-	0x06, // iInterface (index of string describing interface) - changed from 3 to 6
+		// Members from struct interface_descriptor
+		sizeof(struct interface_descriptor), // bLength;
+		DESC_INTERFACE,
+		0x4, // InterfaceNumber		// Set to interface 4
+		0x0, // AlternateSetting
+		0x1, // bNumEndpoints		// 1 endpoint - The INTERRUPT endpoint that has to be for every CDC device.
+		CDC_COMMUNICATION_INTERFACE_CLASS, // bInterfaceClass
+		CDC_COMMUNICATION_INTERFACE_CLASS_ACM_SUBCLASS, // bInterfaceSubclass
+		0x00, // bInterfaceProtocol
+		0x08, // iInterface (index of string describing interface) - changed from 3 to 6 to 8
 	},
 
 	/* CDC Functional Descriptor Header */
 	{
-	sizeof(struct cdc_functional_descriptor_header),
-	DESC_CS_INTERFACE,
-	CDC_FUNCTIONAL_DESCRIPTOR_SUBTYPE_HEADER,
-	0x0110, /* bcdCDC (version in BCD) */
+		sizeof(struct cdc_functional_descriptor_header),
+		DESC_CS_INTERFACE,
+		CDC_FUNCTIONAL_DESCRIPTOR_SUBTYPE_HEADER,
+		0x0110, /* bcdCDC (version in BCD) */
 	},
 
 	/* CDC ACM Functional Descriptor */
 	{
-	sizeof(struct cdc_acm_functional_descriptor),
-	DESC_CS_INTERFACE,
-	CDC_FUNCTIONAL_DESCRIPTOR_SUBTYPE_ACM,
-	/* bmCapabilities: Make sure to keep in sync with the actual
-	 * capabilities (ie: which callbacks are defined). */
-	CDC_ACM_CAPABILITY_LINE_CODINGS | CDC_ACM_CAPABILITY_SEND_BREAK,
+		sizeof(struct cdc_acm_functional_descriptor),
+		DESC_CS_INTERFACE,
+		CDC_FUNCTIONAL_DESCRIPTOR_SUBTYPE_ACM,
+		/* bmCapabilities: Make sure to keep in sync with the actual
+		 * capabilities (ie: which callbacks are defined). */
+		CDC_ACM_CAPABILITY_LINE_CODINGS | CDC_ACM_CAPABILITY_SEND_BREAK,
 	},
 
 	/* CDC Union Functional Descriptor */
 	{
-	sizeof (struct cdc_union_functional_descriptor),
-	DESC_CS_INTERFACE,
-	CDC_FUNCTIONAL_DESCRIPTOR_SUBTYPE_UNION,
-	2, /* bMasterInterface */ // CHANGED
-	3, /* bSlaveInterface0 */ // CHANGED
+		sizeof (struct cdc_union_functional_descriptor),
+		DESC_CS_INTERFACE,
+		CDC_FUNCTIONAL_DESCRIPTOR_SUBTYPE_UNION,
+		4, /* bMasterInterface */ // CHANGED
+		5, /* bSlaveInterface0 */ // CHANGED
 	},
 
 	/* CDC ACM Notification Endpoint (Endpoint 1 IN) */
 	{
-	sizeof(struct endpoint_descriptor),
-	DESC_ENDPOINT,
-	0x03 | 0x80, // endpoint #3 0x80=IN - updated
-	EP_INTERRUPT, // bmAttributes
-	EP_3_IN_LEN, // wMaxPacketSize
-	1, // bInterval in ms.
+		sizeof(struct endpoint_descriptor),
+		DESC_ENDPOINT,
+		0x05 | 0x80, // endpoint #5 0x80=IN - updated
+		EP_INTERRUPT, // bmAttributes
+		EP_5_IN_LEN, // wMaxPacketSize
+		1, // bInterval in ms.
 	},
 
 	/* CDC Data Interface */
 	{
-	// Members from struct interface_descriptor
-	sizeof(struct interface_descriptor), // bLength;
-	DESC_INTERFACE,
-	0x3, // InterfaceNumber
-	0x0, // AlternateSetting
-	0x2, // bNumEndpoints
-	CDC_DATA_INTERFACE_CLASS, // bInterfaceClass
-	0, // bInterfaceSubclass (no subclass)
-	CDC_DATA_INTERFACE_CLASS_PROTOCOL_NONE, // bInterfaceProtocol
-	0x07, // iInterface (index of string describing interface) - changed from 4 to 7
+		// Members from struct interface_descriptor
+		sizeof(struct interface_descriptor), // bLength;
+		DESC_INTERFACE,
+		0x5, // InterfaceNumber
+		0x0, // AlternateSetting
+		0x2, // bNumEndpoints
+		CDC_DATA_INTERFACE_CLASS, // bInterfaceClass
+		0, // bInterfaceSubclass (no subclass)
+		CDC_DATA_INTERFACE_CLASS_PROTOCOL_NONE, // bInterfaceProtocol
+		0x09, // iInterface (index of string describing interface) - changed from 4 to 7 to 9
 	},
 
 	/* CDC Data IN Endpoint */
 	{
-	sizeof(struct endpoint_descriptor),
-	DESC_ENDPOINT,
-	0x04 | 0x80, // endpoint #4 0x80=IN - updated
-	EP_BULK, // bmAttributes
-	EP_4_IN_LEN, // wMaxPacketSize
-	1, // bInterval in ms.
+		sizeof(struct endpoint_descriptor),
+		DESC_ENDPOINT,
+		0x06 | 0x80, // endpoint #6 0x80=IN - updated
+		EP_BULK, // bmAttributes
+		EP_6_IN_LEN, // wMaxPacketSize
+		1, // bInterval in ms.
 	},
 
 	/* CDC Data OUT Endpoint */
 	{
 	sizeof(struct endpoint_descriptor),
-	DESC_ENDPOINT,
-	0x04 /*| 0x00*/, // endpoint #4 0x00=OUT - updated
-	EP_BULK, // bmAttributes
-	EP_4_OUT_LEN, // wMaxPacketSize
-	1, // bInterval in ms.
+		DESC_ENDPOINT,
+		0x06 /*| 0x00*/, // endpoint #4 0x00=OUT - updated
+		EP_BULK, // bmAttributes
+		EP_6_OUT_LEN, // wMaxPacketSize
+		1, // bInterval in ms.
+	},
+
+
+	////////////////////////////////////////////////////////////////////
+	// FOURTH CDC INTERFACE - UART4
+	////////////////////////////////////////////////////////////////////
+	/* Interface Association Descriptor */
+	{
+		sizeof(struct interface_association_descriptor),
+		DESC_INTERFACE_ASSOCIATION,
+		6, /* bFirstInterface */	// Set to interface 6, since Third IAD is interface 4 and goes for 2 interfaces
+		2, /* bInterfaceCount */
+		CDC_COMMUNICATION_INTERFACE_CLASS,
+		CDC_COMMUNICATION_INTERFACE_CLASS_ACM_SUBCLASS,
+		0, /* bFunctionProtocol */
+		2, /* iFunction (string descriptor index) */	// TODO CHECK
+	},
+
+	/* CDC Class Interface */
+	{
+		// Members from struct interface_descriptor
+		sizeof(struct interface_descriptor), // bLength;
+		DESC_INTERFACE,
+		0x6, // InterfaceNumber		// Set to interface 6
+		0x0, // AlternateSetting
+		0x1, // bNumEndpoints		// 1 endpoint - The INTERRUPT endpoint that has to be for every CDC device.
+		CDC_COMMUNICATION_INTERFACE_CLASS, // bInterfaceClass
+		CDC_COMMUNICATION_INTERFACE_CLASS_ACM_SUBCLASS, // bInterfaceSubclass
+		0x00, // bInterfaceProtocol
+		0x0A, // iInterface (index of string describing interface) - changed from 3 to 6 to 8 to 10
+	},
+
+	/* CDC Functional Descriptor Header */
+	{
+		sizeof(struct cdc_functional_descriptor_header),
+		DESC_CS_INTERFACE,
+		CDC_FUNCTIONAL_DESCRIPTOR_SUBTYPE_HEADER,
+		0x0110, /* bcdCDC (version in BCD) */
+	},
+
+	/* CDC ACM Functional Descriptor */
+	{
+		sizeof(struct cdc_acm_functional_descriptor),
+		DESC_CS_INTERFACE,
+		CDC_FUNCTIONAL_DESCRIPTOR_SUBTYPE_ACM,
+		/* bmCapabilities: Make sure to keep in sync with the actual
+		 * capabilities (ie: which callbacks are defined). */
+		CDC_ACM_CAPABILITY_LINE_CODINGS | CDC_ACM_CAPABILITY_SEND_BREAK,
+	},
+
+	/* CDC Union Functional Descriptor */
+	{
+		sizeof (struct cdc_union_functional_descriptor),
+		DESC_CS_INTERFACE,
+		CDC_FUNCTIONAL_DESCRIPTOR_SUBTYPE_UNION,
+		6, /* bMasterInterface */ // CHANGED
+		7, /* bSlaveInterface0 */ // CHANGED
+	},
+
+	/* CDC ACM Notification Endpoint (Endpoint 1 IN) */
+	{
+		sizeof(struct endpoint_descriptor),
+		DESC_ENDPOINT,
+		0x07 | 0x80, // endpoint #5 0x80=IN - updated
+		EP_INTERRUPT, // bmAttributes
+		EP_7_IN_LEN, // wMaxPacketSize
+		1, // bInterval in ms.
+	},
+
+	/* CDC Data Interface */
+	{
+		// Members from struct interface_descriptor
+		sizeof(struct interface_descriptor), // bLength;
+		DESC_INTERFACE,
+		0x7, // InterfaceNumber
+		0x0, // AlternateSetting
+		0x2, // bNumEndpoints
+		CDC_DATA_INTERFACE_CLASS, // bInterfaceClass
+		0, // bInterfaceSubclass (no subclass)
+		CDC_DATA_INTERFACE_CLASS_PROTOCOL_NONE, // bInterfaceProtocol
+		0x0B, // iInterface (index of string describing interface) - changed from 4 to 7 to 9 to 11
+	},
+
+	/* CDC Data IN Endpoint */
+	{
+		sizeof(struct endpoint_descriptor),
+		DESC_ENDPOINT,
+		0x08 | 0x80, // endpoint #6 0x80=IN - updated
+		EP_BULK, // bmAttributes
+		EP_8_IN_LEN, // wMaxPacketSize
+		1, // bInterval in ms.
+	},
+
+	/* CDC Data OUT Endpoint */
+	{
+	sizeof(struct endpoint_descriptor),
+		DESC_ENDPOINT,
+		0x08 /*| 0x00*/, // endpoint #4 0x00=OUT - updated
+		EP_BULK, // bmAttributes
+		EP_8_OUT_LEN, // wMaxPacketSize
+		1, // bInterval in ms.
 	},
 
 
@@ -371,39 +609,28 @@ static const ROMPTR struct {uint8_t bLength;uint8_t bDescriptorType; uint16_t ch
 	{'N', 'e', 'o', 'f', 'o', 'x', 'x'}
 };
 
-static const ROMPTR struct {uint8_t bLength;uint8_t bDescriptorType; uint16_t chars[13]; } product_string = {
+static const ROMPTR struct {uint8_t bLength;uint8_t bDescriptorType; uint16_t chars[8]; } product_string = {
 	sizeof(product_string),
 	DESC_STRING,
-	{'D', 'e', 'b', 'u', 'g', ' ', 't', 'o', 'o', 'l', ' ', 'v', '1'}
+	{'Q', 'u', 'a', 'd', 'U', 'a', 'r', 't'}
 };
 
-static const ROMPTR struct {uint8_t bLength;uint8_t bDescriptorType; uint16_t chars[14]; } cdc_interface_string_first = {
-	sizeof(cdc_interface_string_first),
-	DESC_STRING,
-	{'P','R','O','G',' ','I','n','t','e','r','f','a','c','e'}
-};
-
-static const ROMPTR struct {uint8_t bLength;uint8_t bDescriptorType; uint16_t chars[19]; } cdc_data_string_first = {
-	sizeof(cdc_data_string_first),
-	DESC_STRING,
-	{'P','R','O','G',' ','D','a','t','a',' ','I','n','t','e','r','f','a','c','e'}
-};
-static const ROMPTR struct {uint8_t bLength;uint8_t bDescriptorType; uint16_t chars[13]; } cdc_interface_string_second = {
+static const ROMPTR struct {uint8_t bLength;uint8_t bDescriptorType; uint16_t chars[13]; } cdc_interface_string_first = {
 	sizeof(cdc_interface_string_first),
 	DESC_STRING,
 	{'C','D','C',' ','I','n','t','e','r','f','a','c','e'}
 };
 
-static const ROMPTR struct {uint8_t bLength;uint8_t bDescriptorType; uint16_t chars[18]; } cdc_data_string_second = {
+static const ROMPTR struct {uint8_t bLength;uint8_t bDescriptorType; uint16_t chars[18]; } cdc_data_string_first = {
 	sizeof(cdc_data_string_first),
 	DESC_STRING,
 	{'C','D','C',' ','D','a','t','a',' ','I','n','t','e','r','f','a','c','e'}
 };
 
-static const ROMPTR struct {uint8_t bLength;uint8_t bDescriptorType; uint16_t chars[59]; } fake_serial_num = {
+static const ROMPTR struct {uint8_t bLength;uint8_t bDescriptorType; uint16_t chars[22]; } fake_serial_num = {
 	sizeof(fake_serial_num),
 	DESC_STRING,
-	{'S', 'e', 'r', 'i', 'a', 'l', ' ', 'n', 'u', 'm', 'b', 'e', 'r' }
+	{'S', 'e', 'r', 'i', 'a', 'l', ' ', 'n', 'u', 'm', 'b', 'e', 'r', ' ', '0', '0', '0', '0', '0', '0', '0', '0'}
 };
 
 
@@ -454,14 +681,38 @@ int16_t usb_application_get_string(uint8_t string_number, const void **ptr)
 		*ptr = &fake_serial_num;
 		return sizeof(fake_serial_num);
 	}
-	else if (string_number == 6) {			// For SECOND CDC interface
-		*ptr = &cdc_interface_string_second;
-		return sizeof(cdc_interface_string_second);
+
+	// For SECOND CDC interface
+	else if (string_number == 6) {
+		*ptr = &cdc_interface_string_first;
+		return sizeof(cdc_interface_string_first);
 	}
-	else if (string_number == 7) {			// For SECOND CDC interface
-		*ptr = &cdc_data_string_second;
-		return sizeof(cdc_data_string_second);
+	else if (string_number == 7) {
+		*ptr = &cdc_data_string_first;
+		return sizeof(cdc_data_string_first);
 	}
+
+	// For SECOND CDC interface
+	else if (string_number == 8) {
+		*ptr = &cdc_interface_string_first;
+		return sizeof(cdc_interface_string_first);
+	}
+	else if (string_number == 9) {
+		*ptr = &cdc_data_string_first;
+		return sizeof(cdc_data_string_first);
+	}
+
+	// For SECOND CDC interface
+	else if (string_number == 10) {
+		*ptr = &cdc_interface_string_first;
+		return sizeof(cdc_interface_string_first);
+	}
+	else if (string_number == 11) {
+		*ptr = &cdc_data_string_first;
+		return sizeof(cdc_data_string_first);
+	}
+
+
 
 	return -1;
 }

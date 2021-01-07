@@ -13,7 +13,7 @@
 // Drivers for HW
 #include <GPIODrv.h>
 #include <UARTDrv.h>
-#include <LED.h>
+//#include <LED.h>
 // USB
 #include <usb.h>
 #include <usb_config.h>
@@ -31,13 +31,39 @@
 static uint8_t cdc_interfaces[] = { 0, 2, 4, 6 };
 #endif
 
-static struct cdc_line_coding line_coding =
+static struct cdc_line_coding line_coding_1 =
 {
 	115200,
 	CDC_CHAR_FORMAT_1_STOP_BIT,
 	CDC_PARITY_NONE,
 	8,
 };
+
+static struct cdc_line_coding line_coding_2 =
+{
+	115200,
+	CDC_CHAR_FORMAT_1_STOP_BIT,
+	CDC_PARITY_NONE,
+	8,
+};
+
+static struct cdc_line_coding line_coding_3 =
+{
+	115200,
+	CDC_CHAR_FORMAT_1_STOP_BIT,
+	CDC_PARITY_NONE,
+	8,
+};
+
+static struct cdc_line_coding line_coding_4 =
+{
+	115200,
+	CDC_CHAR_FORMAT_1_STOP_BIT,
+	CDC_PARITY_NONE,
+	8,
+};
+
+
 
 volatile uint32_t packetCounter = 0;	// Reset by SOF. May be useful
 
@@ -75,7 +101,10 @@ void setup(){
 
 	GPIODrv_init();
 
-	UARTDrv_Init(&line_coding);
+	UARTDrv_1_Init(&line_coding_1);
+	UARTDrv_2_Init(&line_coding_2);
+	UARTDrv_3_Init(&line_coding_3);
+	UARTDrv_4_Init(&line_coding_4);
 
 	// Copied for USB, from hardware.c
 	// TODO, make generic, make proper.
@@ -156,7 +185,7 @@ INTERRUPT(USB1Interrupt){
 	////////////////////////////////////////////////////////////
 
 	// Post data to EP4 IN (USB-UART, us to PC)
-	if (!usb_in_endpoint_halted(EP_UART_NUM) && !usb_in_endpoint_busy(EP_UART_NUM)){
+//	if (!usb_in_endpoint_halted(EP_UART_NUM) && !usb_in_endpoint_busy(EP_UART_NUM)){
 //		if (!COMMS_USB_uartRX_transmitBuf()){
 //			packetCounter++;
 //		}
@@ -165,38 +194,38 @@ INTERRUPT(USB1Interrupt){
 		// TODO - then in the ISR copy into circular buffer (if space), and rearm
 		// TODO - expand with timeSinceLastModified && dataInBuffer -> abort DMA.
 		// TODO - ISR then hadles normal (as above) & abort in the same way = speed.
-	}
+//	}
 
 	////////////////////////////////////////////////////////////
 	// 2. Get data from EP2 OUT (programmer, PC to us)
 	////////////////////////////////////////////////////////////
-	if (!usb_out_endpoint_halted(EP_PROG_NUM) && usb_out_endpoint_has_data(EP_PROG_NUM) && !usb_in_endpoint_busy(EP_PROG_NUM)) {
+//	if (!usb_out_endpoint_halted(EP_PROG_NUM) && usb_out_endpoint_has_data(EP_PROG_NUM) && !usb_in_endpoint_busy(EP_PROG_NUM)) {
 //		if (!COMMS_progOUT_addToBuf()){
 //		}
-		packetCounter++; // I think packet is consumed regardless
-	}
+//		packetCounter++; // I think packet is consumed regardless
+//	}
 
 	////////////////////////////////////////////////////////////
 	// 3. Push data to EP2 IN (programmer, us to PC)
 	////////////////////////////////////////////////////////////
 
 	// Post data to EP2 IN (programmer, us to PC)
-	if (!usb_in_endpoint_halted(EP_PROG_NUM) && !usb_in_endpoint_busy(EP_PROG_NUM)){
+//	if (!usb_in_endpoint_halted(EP_PROG_NUM) && !usb_in_endpoint_busy(EP_PROG_NUM)){
 //		if (!COMMS_USB_progRET_transmitBuf()){
 //			packetCounter++;
 //		}
-	}
+//	}
 
 	////////////////////////////////////////////////////////////
 	// 4. Get data from EP4 OUT (UART, PC to us)
 	////////////////////////////////////////////////////////////
 
 	// Get data from EP4 OUT (USB-UART, PC to us)
-	if (!usb_out_endpoint_halted(EP_UART_NUM) && usb_out_endpoint_has_data(EP_UART_NUM) && !usb_in_endpoint_busy(EP_UART_NUM)) {
+//	if (!usb_out_endpoint_halted(EP_UART_NUM) && usb_out_endpoint_has_data(EP_UART_NUM) && !usb_in_endpoint_busy(EP_UART_NUM)) {
 //		if (!COMMS_uartTX_addToBuf()){
 //		}
-		packetCounter++;
-	}
+//		packetCounter++;
+//	}
 
 
 	////////////////////
@@ -323,16 +352,31 @@ int8_t app_set_line_coding_callback(uint8_t interface,
 		return 0;
 	}
 
+
 	// Check if values are in ranges we support
 	if (coding->dwDTERate <= 1000000
 			&& (coding->bCharFormat == CDC_CHAR_FORMAT_1_STOP_BIT || coding->bCharFormat == CDC_CHAR_FORMAT_2_STOP_BITS)
 			&& coding->bParityType == CDC_PARITY_NONE
 			&& coding->bDataBits == 8){
 
-		line_coding = *coding;
-	}
+		if (interface == 0){
+			line_coding_1 = *coding;
+			UARTDrv_1_Init(&line_coding_1);
+		}
+		if (interface == 2){
+			line_coding_2 = *coding;
+			UARTDrv_2_Init(&line_coding_2);
+		}
+		if (interface == 4){
+			line_coding_3 = *coding;
+			UARTDrv_3_Init(&line_coding_3);
+		}
+		if (interface == 5){
+			line_coding_4 = *coding;
+			UARTDrv_4_Init(&line_coding_4);
+		}
 
-	UARTDrv_Init(&line_coding);
+	}
 
 	return 0;	// No way to deny. Must return 0, otherwise it will stall.
 }
@@ -341,7 +385,19 @@ int8_t app_get_line_coding_callback(uint8_t interface,
                                     struct cdc_line_coding *coding)
 {
 	// Return what sort of line_coding we are using.
-	*coding = line_coding;
+	if (interface == 0){
+		*coding = line_coding_1;
+	}
+	else if (interface == 2){
+		*coding = line_coding_2;
+	}
+	else if (interface == 4){
+		*coding = line_coding_3;
+	}
+	else if (interface == 6){
+		*coding = line_coding_4;
+	}
+
 	return 0;
 }
 
@@ -350,12 +406,20 @@ int8_t app_set_control_line_state_callback(uint8_t interface,
 {
 	// Set DTR and RTS lines, according to demands.
 	// Only interface 2 (UART) supports this
-	if (interface != 2){
-		return 0;
+
+	if (interface == 0){
+		GPIODrv_setDTR_1(dtr);
+	}
+	else if (interface == 2){
+		GPIODrv_setDTR_2(dtr);
+	}
+	else if (interface == 4){
+		GPIODrv_setDTR_3(dtr);
+	}
+	else if (interface == 6){
+		GPIODrv_setDTR_4(dtr);
 	}
 
-	GPIODrv_setDTR(rts?GPIO_HIGH:GPIO_LOW);
-	GPIODrv_setDTR(dtr?GPIO_HIGH:GPIO_LOW);
 
 	return 0;
 }
