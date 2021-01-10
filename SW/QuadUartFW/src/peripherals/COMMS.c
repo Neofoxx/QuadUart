@@ -24,76 +24,59 @@ comStruct comStruct_UART_4_TX = {0};	// PC to target
 comStruct comStruct_UART_4_RX = {0};	// Target to PC
 
 
+// Called from USB routine, to send data we received from target
+uint32_t COMMS_USB_sendToPC(comStruct * st, uint32_t ep, uint32_t maxLen){
+	uint32_t sizeToSend = COMMS_helper_dataLen(st);
+	uint8_t *buf;
 
+	if (sizeToSend > maxLen){
+		sizeToSend = maxLen;	// Limit to size of endpoint
+	}
 
+	if (sizeToSend == 0){
+		if (st->sizeofLastSent == maxLen){
+			// If we landed on a boundary last time, send a zero-length packet
+			usb_send_in_buffer(ep, 0);
+			st->sizeofLastSent = 0;
+			return 0;	// Return - packet used up
+		}
+		else{
+			// Do nothing. Nothing to send, no transaction to complete.
+			return 1;	// Return - nothing to be done
+		}
+	}
+	else{
+		buf = usb_get_in_buffer(ep);					// Get buffer from endpoint
+		COMMS_helper_getData(st, buf, sizeToSend);		// Get sizeToSend data and copy into buf
+		usb_send_in_buffer(ep, sizeToSend);				// Send on endpoint ep, of length sizeToSend
+		st->sizeofLastSent = sizeToSend;				// Save data size, so we can finish transaction if needed
+		return 0;		// Return - packet used up
+	}
+}
 
+// Called from USB, to gives us data from PC
+uint32_t COMMS_USB_recvFromPC(comStruct * st, uint32_t ep){
+	const unsigned char *out_buf;
+	size_t out_buf_len;
 
-//// FUNCTIONS PROGRAMMER
-//uint32_t COMMS_progOUT_addToBuf(){
-//	// Called from USB, to gives us data from PC
-//	comStruct* whichStruct = &progOUTstruct;	// Copy&paste error protection
-//	const unsigned char *out_buf;
-//	volatile size_t out_buf_len;
-//
-//	// Check for an empty transaction.
-//	out_buf_len = usb_get_out_buffer(EP_PROG_NUM, &out_buf);
-//	if ( (out_buf_len <= 0)){
-//		// This should happen on edge boundaries. Nothing wrong here.
-//		usb_arm_out_endpoint(EP_PROG_NUM);
-//		LED_USBPROG_OUT_toggle();	// Debug toggle
-//		return 0;	// Signal packet used
-//	}
-//	else{
-//		if (COMMS_helper_addToBuf(whichStruct, (uint8_t *)out_buf, out_buf_len)){
-//			return 1;	// If no space, signal, that we didn't rearm endpoint.
-//		}
-//	}
-//
-//	usb_arm_out_endpoint(EP_PROG_NUM);
-//	LED_USBPROG_OUT_toggle();	// Debug toggle
-//	whichStruct->timeStamp = _CP0_GET_COUNT();
-//	return 0;	// 0 on success, else otherwise (no more space, PC will buffer for us :3)
-//}
-//
-//
-//uint32_t COMMS_USB_progRET_transmitBuf(){
-//	// Called from USB routine, to send data from the programmer to PC
-//
-//	comStruct* whichStruct = &progRETstruct;	// Copy&paste error protection
-//	uint32_t sizeToSend = COMMS_helper_dataLen(whichStruct);
-//	uint8_t *buf;
-//
-//
-//	if (sizeToSend>EP_PROG_NUM_LEN){
-//		sizeToSend=EP_PROG_NUM_LEN;	// Limit to number of packets
-//	}
-//
-//	whichStruct->timeStamp = _CP0_GET_COUNT();			// Save current time.
-//
-//
-//	if (sizeToSend == 0){
-//		if (whichStruct->sizeofLastSent == EP_PROG_NUM_LEN){
-//			// If we landed on a boundary last time, send a zero-length packet
-//			usb_send_in_buffer(EP_PROG_NUM, 0);
-//			LED_USBPROG_IN_toggle();	// Toggle on each send, for nicer debugging
-//			whichStruct->sizeofLastSent = 0;
-//			return 0;	// Return - packet used up
-//		}
-//		else{
-//			// Do nothing. Nothing to send, no transaction to complete.
-//			return 1;	// Return - nothing to be done
-//		}
-//	}
-//	else{
-//		buf = usb_get_in_buffer(EP_PROG_NUM);			// Get buffer from endpoint
-//		COMMS_helper_getData(whichStruct, sizeToSend, buf);	// Get sizeToSend data and copy into buf
-//		usb_send_in_buffer(EP_PROG_NUM, sizeToSend);	// Send on endpoint EP_UART_NUM, of length sizeToSend
-//		LED_USBPROG_IN_toggle();	// Toggle on each send, for nicer debugging
-//		whichStruct->sizeofLastSent = sizeToSend;		// Save data size, so we can finish transaction if needed
-//		return 0;		// Return - packet used up
-//	}
-//
-//}
+	// Check for an empty transaction.
+	out_buf_len = usb_get_out_buffer(ep, &out_buf);
+	if ( (out_buf_len <= 0)){
+		usb_arm_out_endpoint(ep);
+		return 0;	// Return - packet used up
+	}
+	else{
+		// Try and add. If no space, return, and don't rearm - PC will retransmit
+		if (COMMS_helper_addToBuf(st, (uint8_t *)out_buf, out_buf_len)){
+			return 1;	// Return - nothing to be done
+		}
+	}
+
+	usb_arm_out_endpoint(ep);
+	return 0;	// Return - packet used up
+
+}
+
 
 
 // HELPER FUNCTION

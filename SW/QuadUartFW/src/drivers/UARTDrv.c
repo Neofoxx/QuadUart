@@ -59,6 +59,10 @@ INTERRUPT(I2C4_SPI2_UART3_SharedInterrupt){
 				UART_1_TX_reg = buffer[txCounter];
 			}
 		}
+		else{
+			// If there isn't any data to send, we must disable ourselves
+			UART_1_INT_IEC_bits.UART_1_INT_IEC_TXIE = 0;
+		}
 		// Clear interrupt flag
 		UART_1_INT_IFS_bits.UART_1_INT_IFS_TXIF = 0;
 	}
@@ -93,6 +97,10 @@ INTERRUPT(UART6_UART2B_SharedInterrupt){
 			for (txCounter = 0; txCounter < counter; txCounter++){
 				UART_2_TX_reg = buffer[txCounter];
 			}
+		}
+		else{
+			// If there isn't any data to send, we must disable ourselves
+			UART_2_INT_IEC_bits.UART_2_INT_IEC_TXIE = 0;
 		}
 		// Clear interrupt flag
 		UART_2_INT_IFS_bits.UART_2_INT_IFS_TXIF = 0;
@@ -129,6 +137,10 @@ INTERRUPT(I2C5_SPI4_UART2_SharedInterrupt){
 				UART_3_TX_reg = buffer[txCounter];
 			}
 		}
+		else{
+			// If there isn't any data to send, we must disable ourselves
+			UART_3_INT_IEC_bits.UART_3_INT_IEC_TXIE = 0;
+		}
 		// Clear interrupt flag
 		UART_3_INT_IFS_bits.UART_3_INT_IFS_TXIF = 0;
 	}
@@ -164,6 +176,10 @@ INTERRUPT(UART5_UART3B_SharedInterrupt){
 				UART_4_TX_reg = buffer[txCounter];
 			}
 		}
+		else{
+			// If there isn't any data to send, we must disable ourselves
+			UART_4_INT_IEC_bits.UART_4_INT_IEC_TXIE = 0;
+		}
 		// Clear interrupt flag
 		UART_4_INT_IFS_bits.UART_4_INT_IFS_TXIF = 0;
 	}
@@ -175,6 +191,7 @@ INTERRUPT(UART5_UART3B_SharedInterrupt){
 
 void UARTDrv_1_Init(struct cdc_line_coding* coding){
 	UART_1_MODE_bits.ON = 0;
+	COMMS_helper_dropAll(&comStruct_UART_1_RX);
 
 	UART_1_TX_TRISbits.UART_1_TX_TRISPIN = 0;	// 0 == output
 	UART_1_TX_LATbits.UART_1_TX_LATPIN = 1;		// Set high, as UART is Idle High
@@ -227,6 +244,7 @@ void UARTDrv_1_Init(struct cdc_line_coding* coding){
 void UARTDrv_2_Init(struct cdc_line_coding* coding){	UART_1_MODE_bits.ON = 0;
 
 	UART_2_MODE_bits.ON = 0;
+	COMMS_helper_dropAll(&comStruct_UART_2_RX);
 
 	UART_2_TX_TRISbits.UART_2_TX_TRISPIN = 0;	// 0 == output
 	UART_2_TX_LATbits.UART_2_TX_LATPIN = 1;		// Set high, as UART is Idle High
@@ -278,6 +296,7 @@ void UARTDrv_2_Init(struct cdc_line_coding* coding){	UART_1_MODE_bits.ON = 0;
 void UARTDrv_3_Init(struct cdc_line_coding* coding){
 
 	UART_3_MODE_bits.ON = 0;
+	COMMS_helper_dropAll(&comStruct_UART_3_RX);
 
 	UART_3_TX_TRISbits.UART_3_TX_TRISPIN = 0;	// 0 == output
 	UART_3_TX_LATbits.UART_3_TX_LATPIN = 1;		// Set high, as UART is Idle High
@@ -329,6 +348,7 @@ void UARTDrv_3_Init(struct cdc_line_coding* coding){
 void UARTDrv_4_Init(struct cdc_line_coding* coding){
 
 	UART_4_MODE_bits.ON = 0;
+	COMMS_helper_dropAll(&comStruct_UART_4_RX);
 
 	UART_4_TX_TRISbits.UART_4_TX_TRISPIN = 0;	// 0 == output
 	UART_4_TX_LATbits.UART_4_TX_LATPIN = 1;		// Set high, as UART is Idle High

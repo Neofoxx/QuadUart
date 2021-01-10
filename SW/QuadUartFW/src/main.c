@@ -1,6 +1,7 @@
 #include <p32xxxx.h>
 #include <inttypes.h>
 #include <stdbool.h>
+#include <builtin.h>
 
 #include <string.h>
 #include <stdio.h>
@@ -108,26 +109,43 @@ void setup(){
 
 	// Copied for USB, from hardware.c
 	// TODO, make generic, make proper.
-#if defined (__32MX270F256D__)
-	IPC7bits.USBIP = 4;
-#elif defined(__32MX440F256H__)
+//#if defined (__32MX270F256D__)
+//	IPC7bits.USBIP = 4;
+//#elif defined(__32MX440F256H__)
+//	IPC11bits.USBIP = 4;
+//#endif
+
+	// Enable USB interrupt
 	IPC11bits.USBIP = 4;
-#endif
+	IPC11bits.USBIS = 0;
+	// IEC bit is set in usb_hal.h
+
 
 	// Enable DMA at the end.
 	//DMACONbits.ON = 1;
 	//asm("nop");
 
 	// Enable interrupts - at the end, otherwise setting priorities is ineffective ? TODO
-//	INTEnableSystemMultiVectoredInt();
 
+	// set the CP0 cause IV bit high
+	// -> This tells the interrupt controller to use interrupts at ebase+0x200,
+	// not the general exception at 0x180
+	_CP0_BIS_CAUSE(_CP0_CAUSE_IV_MASK);
 
+	// Enable multi-vectored mode
+	INTCONSET = _INTCON_MVEC_MASK;
+
+	// set the CP0 status IE bit high to turn on interrupts
+	//INTEnableInterrupts();
+	asm("ei");	// Compiler handles this, but should be same as _CP0_BIS_STATUS(_CP0_STATUS_IE_MASK)
 
 }
 
 
 int main(){
 
+	uint32_t lastTime = _CP0_GET_COUNT();
+	uint32_t currTime = lastTime;
 
 	setup();
 	cdc_set_interface_list(cdc_interfaces, 4);	// 4 UART interfaces...
@@ -138,11 +156,31 @@ int main(){
 		// Handle data that is to be sent to the PC
 		// Nothing yet
 
-//		COMMS_handleIncomingProg();
-
-//		#ifndef USB_USE_INTERRUPTS
+		#ifndef USB_USE_INTERRUPTS
 		usb_service();
-//		#endif
+		#endif
+
+
+		currTime = _CP0_GET_COUNT();
+		// Once per ms
+		if ((currTime - lastTime) > ( (80000000 / 2) / 1000)){
+			lastTime = currTime;
+			// Fire ALL the RX interrupts, to get data that doesn't trigger the RX interrupt
+			// Note, we will get interrupted by each interrupt
+			if(UART_1_STA_bits.URXDA){
+				UART_1_INT_IFS_bits.UART_1_INT_IFS_RXIF = 1;
+			}
+			if(UART_2_STA_bits.URXDA){
+				UART_2_INT_IFS_bits.UART_2_INT_IFS_RXIF = 1;
+			}
+			if(UART_3_STA_bits.URXDA){
+				UART_3_INT_IFS_bits.UART_3_INT_IFS_RXIF = 1;
+			}
+			if(UART_4_STA_bits.URXDA){
+				UART_4_INT_IFS_bits.UART_4_INT_IFS_RXIF = 1;
+			}
+
+		}
 
 	}
 
@@ -158,83 +196,64 @@ int main(){
 #ifdef USB_USE_INTERRUPTS
 INTERRUPT(USB1Interrupt){
 	usb_service();
-	//COMMS_addToInputBuffer();
 
 	// All of the cases depend on this anyway.
 	if (!usb_is_configured()){
 		return;
 	}
 
-	// Priorities!
+	// I forget, does this happen at 1ms, or at 125us?
+	// 1ms is normal time slice, but we can send many more packets than just 1/ms... TODO check
 
-	// 1. We have one IN (us->PC) endpoint for USB-UART. This one must have high throughput, but can have bigger latency
-	// 4. The OUT (PC->us) endpoint for USB-UART has got the short straw, when it happens it happens.
+	// Highest priority should be on Target->PC transmissions, since we can only buffer so much
+	// For PC->Target, the USB stack auto-buffers, so there will be no dropouts
 
-	// 3. We have one IN (us->PC) endpoint for the programmer - low-ish throughput, medium latency?
-	// 2. We have one OUT (PC->us) endpoint for the programmer - medium throughput, low latency desired
+	// Total of 4 IN endpoints (Target->PC), and 4 OUT endpoints (PC->TARGET)
 
-	// So, uh, we can send MORE than 64B in one 1ms time slot.
-	// The trick is to limit the number of packets to <19, or something like that.
-	// Let's limit it to 8 packets (8*64 = 512B), which should be quite a lot.
-	// -> Scratch that, the USB engine will not do stupid things if we send too late in the frame.
-	// Also, let's focus on making this functional, rather then 3Mb/s UARt-> PC fast. 115200 will be plenty, frig it.
-	// After everything is said and done, optimize the UART for faster speeds.
+	// IN endpoints
+	if (!usb_in_endpoint_halted(EP_UART_1) && !usb_in_endpoint_busy(EP_UART_1)){
+		COMMS_USB_sendToPC(&comStruct_UART_1_RX, EP_UART_1, EP_UART_1_LEN);
+	}
+	if (!usb_in_endpoint_halted(EP_UART_2) && !usb_in_endpoint_busy(EP_UART_2)){
+		COMMS_USB_sendToPC(&comStruct_UART_2_RX, EP_UART_2, EP_UART_2_LEN);
+	}
+	if (!usb_in_endpoint_halted(EP_UART_3) && !usb_in_endpoint_busy(EP_UART_3)){
+		COMMS_USB_sendToPC(&comStruct_UART_3_RX, EP_UART_3, EP_UART_3_LEN);
+	}
+	if (!usb_in_endpoint_halted(EP_UART_4) && !usb_in_endpoint_busy(EP_UART_4)){
+		COMMS_USB_sendToPC(&comStruct_UART_4_RX, EP_UART_4, EP_UART_4_LEN);
+	}
 
-	////////////////////////////////////////////////////////////
-	// 1. Push data to EP4 IN (UART, us to PC)
-	////////////////////////////////////////////////////////////
-
-	// Post data to EP4 IN (USB-UART, us to PC)
-//	if (!usb_in_endpoint_halted(EP_UART_NUM) && !usb_in_endpoint_busy(EP_UART_NUM)){
-//		if (!COMMS_USB_uartRX_transmitBuf()){
-//			packetCounter++;
-//		}
-
-		// TODO - add DMA that automatically reads data from UART into a buffer.
-		// TODO - then in the ISR copy into circular buffer (if space), and rearm
-		// TODO - expand with timeSinceLastModified && dataInBuffer -> abort DMA.
-		// TODO - ISR then hadles normal (as above) & abort in the same way = speed.
-//	}
-
-	////////////////////////////////////////////////////////////
-	// 2. Get data from EP2 OUT (programmer, PC to us)
-	////////////////////////////////////////////////////////////
-//	if (!usb_out_endpoint_halted(EP_PROG_NUM) && usb_out_endpoint_has_data(EP_PROG_NUM) && !usb_in_endpoint_busy(EP_PROG_NUM)) {
-//		if (!COMMS_progOUT_addToBuf()){
-//		}
-//		packetCounter++; // I think packet is consumed regardless
-//	}
-
-	////////////////////////////////////////////////////////////
-	// 3. Push data to EP2 IN (programmer, us to PC)
-	////////////////////////////////////////////////////////////
-
-	// Post data to EP2 IN (programmer, us to PC)
-//	if (!usb_in_endpoint_halted(EP_PROG_NUM) && !usb_in_endpoint_busy(EP_PROG_NUM)){
-//		if (!COMMS_USB_progRET_transmitBuf()){
-//			packetCounter++;
-//		}
-//	}
-
-	////////////////////////////////////////////////////////////
-	// 4. Get data from EP4 OUT (UART, PC to us)
-	////////////////////////////////////////////////////////////
-
-	// Get data from EP4 OUT (USB-UART, PC to us)
-//	if (!usb_out_endpoint_halted(EP_UART_NUM) && usb_out_endpoint_has_data(EP_UART_NUM) && !usb_in_endpoint_busy(EP_UART_NUM)) {
-//		if (!COMMS_uartTX_addToBuf()){
-//		}
-//		packetCounter++;
-//	}
-
-
-	////////////////////
-	// At this point, also check for data in the uartTX buffer, and if the DMA isn't running.
-
-//	if (!UARTDrv_IsTxDmaRunning() && (COMMS_helper_dataLen(&uartTXstruct) > 0) && UART_STA_bits.TRMT){	// TRMT because sometimes.. it's weird.
-//		UARTDrv_RunDmaTx();
-//		LED_toggle();
-//	}
+	// OUT endpoints
+	// When we get data, if TX interrupt isn't running, we reenable it. Note, that will interurpt us here.
+	if (!usb_out_endpoint_halted(EP_UART_1) && usb_out_endpoint_has_data(EP_UART_1) && !usb_in_endpoint_busy(EP_UART_1)) {
+		if(!COMMS_USB_recvFromPC(&comStruct_UART_1_TX, EP_UART_1)){
+			if (!UART_1_INT_IEC_bits.UART_1_INT_IEC_TXIE){
+				UART_1_INT_IEC_bits.UART_1_INT_IEC_TXIE = 1;
+			}
+		}
+	}
+	if (!usb_out_endpoint_halted(EP_UART_2) && usb_out_endpoint_has_data(EP_UART_2) && !usb_in_endpoint_busy(EP_UART_2)) {
+		if(!COMMS_USB_recvFromPC(&comStruct_UART_2_TX, EP_UART_2)){
+			if (!UART_2_INT_IEC_bits.UART_2_INT_IEC_TXIE){
+				UART_2_INT_IEC_bits.UART_2_INT_IEC_TXIE = 1;
+			}
+		}
+	}
+	if (!usb_out_endpoint_halted(EP_UART_3) && usb_out_endpoint_has_data(EP_UART_3) && !usb_in_endpoint_busy(EP_UART_3)) {
+		if(!COMMS_USB_recvFromPC(&comStruct_UART_3_TX, EP_UART_3)){
+			if (!UART_3_INT_IEC_bits.UART_3_INT_IEC_TXIE){
+				UART_3_INT_IEC_bits.UART_3_INT_IEC_TXIE = 1;
+			}
+		}
+	}
+	if (!usb_out_endpoint_halted(EP_UART_4) && usb_out_endpoint_has_data(EP_UART_4) && !usb_in_endpoint_busy(EP_UART_4)) {
+		if(!COMMS_USB_recvFromPC(&comStruct_UART_4_TX, EP_UART_4)){
+			if (!UART_4_INT_IEC_bits.UART_4_INT_IEC_TXIE){
+				UART_4_INT_IEC_bits.UART_4_INT_IEC_TXIE = 1;
+			}
+		}
+	}
 
 }
 #endif
@@ -347,12 +366,6 @@ int8_t app_get_comm_feature_callback(uint8_t interface,
 int8_t app_set_line_coding_callback(uint8_t interface,
                                     const struct cdc_line_coding *coding)
 {
-	// Check if proper interface (should just enable it on the one that's supported...)
-	if (interface != 2){
-		return 0;
-	}
-
-
 	// Check if values are in ranges we support
 	if (coding->dwDTERate <= 1000000
 			&& (coding->bCharFormat == CDC_CHAR_FORMAT_1_STOP_BIT || coding->bCharFormat == CDC_CHAR_FORMAT_2_STOP_BITS)
@@ -371,7 +384,7 @@ int8_t app_set_line_coding_callback(uint8_t interface,
 			line_coding_3 = *coding;
 			UARTDrv_3_Init(&line_coding_3);
 		}
-		if (interface == 5){
+		if (interface == 6){
 			line_coding_4 = *coding;
 			UARTDrv_4_Init(&line_coding_4);
 		}
