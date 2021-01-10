@@ -241,7 +241,7 @@ void UARTDrv_1_Init(struct cdc_line_coding* coding){
 }
 
 
-void UARTDrv_2_Init(struct cdc_line_coding* coding){	UART_1_MODE_bits.ON = 0;
+void UARTDrv_2_Init(struct cdc_line_coding* coding){
 
 	UART_2_MODE_bits.ON = 0;
 	COMMS_helper_dropAll(&comStruct_UART_2_RX);
